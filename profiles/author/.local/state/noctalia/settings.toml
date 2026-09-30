@@ -1,0 +1,26 @@
+# Author profile snapshot kept for local reference only.
+# This is not part of the generic install template.
+
+[shell]
+avatar_path = "$HOME/Wallpapers/UserIcon/user.png"
+
+[theme]
+builtin = "Tokyo-Night"
+community_palette = "Oxocarbon"
+custom_palette = "sushi-mc"
+mode = "auto"
+source = "wallpaper"
+wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    builtin_ids = [ "btop", "cava", "hyprland" ]
+    community_ids = [ "discord", "vscode", "fastfetch", "fzf" ]
+
+[wallpaper]
+directory = "$HOME/Wallpapers"
+
+    [wallpaper.default]
+    path = "$HOME/Wallpapers/Frutiger Aero/perfect_hue_177.jpg"
+
+    [wallpaper.last]
+    path = "$HOME/Wallpapers/Frutiger Aero/perfect_hue_177.jpg"

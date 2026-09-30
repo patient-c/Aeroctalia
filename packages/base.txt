@@ -1,0 +1,70 @@
+# El escritorio. Lo mínimo para que la rice funcione.
+
+hyprland                  
+uwsm                      
+noctalia                  
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+xdg-utils
+
+# Temas: Qt
+kvantum
+qt5ct
+qt6ct-kde
+qt5-wayland
+qt6-wayland
+qt5-tools
+qt6-tools
+plasma-integration        
+polkit-kde-agent
+
+# Terminal
+kitty
+
+# Utilidades del escritorio
+grim
+slurp
+nwg-displays             
+nwg-look                 
+dolphin                   
+kconfig                  
+sddm                     
+qt6-multimedia            
+qt6-multimedia-ffmpeg     
+zram-generator
+
+# Audio
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+libpulse
+gst-plugin-pipewire
+
+# Bluetooth / red
+bluez
+bluez-utils
+iwd
+power-profiles-daemon
+
+# Fuentes base
+noto-fonts
+gnu-free-fonts
+
+# Herramientas
+zsh
+bash
+bat
+fzf
+lsd
+git
+base-devel
+sudo
+openssh
+wget
+unzip
+7zip
+firefox
+smartmontools
+efibootmgr
+vimix-cursors

@@ -1,0 +1,11 @@
+btop
+fastfetch
+gtk4
+htop
+imagemagick
+nano
+p7zip-gui
+rsync
+vim
+visual-studio-code-bin
+xcursor-comix

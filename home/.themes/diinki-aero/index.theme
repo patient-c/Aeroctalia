@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Diinki Aero
+Comment=A frutiger aero theme set for Linux apps.
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Diinki Aero
+IconTheme=Crystal Diinki
+CursorTheme=Undecided
+ButtonLayout=menu:minimize,maximize,close

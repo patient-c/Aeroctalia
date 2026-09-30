@@ -1,0 +1,18 @@
+[Desktop Entry]
+# Overlay mínimo: XDG pisa el .desktop del paquete por el mismo filename.
+# No copies el archivo completo de KDE (traducciones, keywords): se pisa en
+# cada actualización y es ruido. Con esto alcanza para menú / krunner / gio.
+Type=Application
+Name=Dolphin
+GenericName=File Manager
+Comment=Manage your files
+Exec=/usr/bin/env QT_STYLE_OVERRIDE=kvantum QT_QPA_PLATFORMTHEME=qt6ct /usr/bin/dolphin %u
+TryExec=/usr/bin/dolphin
+Icon=org.kde.dolphin
+Terminal=false
+Categories=Qt;KDE;System;FileTools;FileManager;
+MimeType=inode/directory;
+StartupWMClass=dolphin
+X-DBUS-ServiceName=org.kde.dolphin
+X-KDE-Shortcuts=Meta+E
+Keywords=files;file management;file browsing;samba;network shares;Explorer;Finder;

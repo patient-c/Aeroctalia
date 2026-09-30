@@ -1,0 +1,43 @@
+# Filtro duro: install.sh saca estos nombres de CUALQUIER lista
+# (base, extras, aur, gpu) antes de llamar a pacman/yay.
+# Si un paquete está acá y también en base.txt, NO se instala.
+
+# Noctalia ya es el daemon de notificaciones. dunst encima duplica
+# globos y se pelea por el D-Bus de org.freedesktop.Notifications.
+dunst
+wofi
+yay
+yay-debug
+
+# greetd y su greeter: el login de esta rice es sddm.
+# Dos display managers a la vez dejan la sesión sin forma de loguearse.
+greetd
+noctalia-greeter
+
+# kconfig-git vs kconfig: el mismo programa, chocan.
+# El repo usa kconfig (release, extra, sin compilar). El -git arrastra
+# doxygen, extra-cmake-modules-git y qt6-doc, y se cae si venció sudo.
+kconfig-git
+
+# install.sh los instala él si activás chaotic-aur. Si los pisa extras,
+# se instalan dos veces.
+chaotic-keyring
+chaotic-mirrorlist
+
+# Base del sistema: nunca los reinstalés desde la rice.
+xf86-video-amdgpu
+xf86-video-ati
+xf86-video-nouveau
+vulkan-nouveau
+linux
+linux-firmware
+grub
+mkinitcpio
+systemd
+glibc
+pacman
+filesystem
+e2fsprogs
+device-mapper
+lvm2
+base

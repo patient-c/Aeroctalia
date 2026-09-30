@@ -1,0 +1,5 @@
+# AUR que hace falta para la rice pero que no está como paquete instalado
+# (estaba como binario suelto, o es dependencia de algo del escritorio).
+# NO va noctalia-greeter: el display manager es sddm.
+# rice-sync lo suma a aur.txt al sincronizar.
+oh-my-posh

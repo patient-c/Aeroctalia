@@ -1,0 +1,8 @@
+# Plantilla: install.sh NO la copia. Sirve para acordarte qué va acá.
+# Generala con: genfstab -U /mnt >> /etc/fstab
+#
+# /                     ¿UUID=  o  /dev/nvme0n1p2 ?
+UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX  /      ext4  defaults       0 1
+UUID=XXXX-XXXX                              /boot  vfat fmask=0077,dmask=0077  0 2
+# swap con zram-generator (no hace falta una partición swap)
+/dev/sdX2                                  none  swap  defaults       0 0

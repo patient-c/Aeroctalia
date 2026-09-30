@@ -1,0 +1,5 @@
+# Plantilla: install.sh NO la copia.
+# Solo si tu raíz está cifrada. El nombre de la derecha es el de tu volumen:
+#   cryptdevice-lUKS  <dispositivo>  none  luks
+# El UUID sale de: blkid | grep crypto_LUKS
+cryptroot          UUID=XXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX   none  luks

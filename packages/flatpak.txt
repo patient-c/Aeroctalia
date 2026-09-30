@@ -1,0 +1,1 @@
+# No se instalan aplicaciones de Flathub por defecto.

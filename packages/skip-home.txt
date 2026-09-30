@@ -1,0 +1,22 @@
+# Rutas relativas a home/ que install.sh NO copia.
+# Estado personal, cachés y basura de la máquina donde se generó la rice.
+# Un directorio (termina en /) saltea todo el árbol.
+# Un glob (con *) matchea un archivo. Sin barra: archivo exacto.
+#
+# Para copiar igual: ./install.sh --copy-all
+
+.config/GIMP/
+.config/dconf/
+.config/kwinoutputconfig.json
+.config/alacritty/
+.local/state/noctalia/state.toml
+.local/state/noctalia/recently_used.json
+.local/state/noctalia/usage_counts.json
+.local/state/noctalia/notification_history.json
+.local/state/noctalia/.setup-complete
+.local/state/noctalia/mpvpaper/
+.local/share/applications/mimeinfo.cache
+.local/share/applications/userapp-*
+.local/share/icons/.icon-theme.cache
+.p7zip
+.gitconfig

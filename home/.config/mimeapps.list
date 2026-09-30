@@ -1,0 +1,33 @@
+[Default Applications]
+x-scheme-handler/http=brave-origin.desktop
+x-scheme-handler/https=brave-origin.desktop
+x-scheme-handler/chrome=zen.desktop
+text/html=brave-origin.desktop
+application/x-extension-htm=zen.desktop
+application/x-extension-html=zen.desktop
+application/x-extension-shtml=zen.desktop
+application/xhtml+xml=zen.desktop
+application/x-extension-xhtml=zen.desktop
+application/x-extension-xht=zen.desktop
+x-scheme-handler/about=brave-origin.desktop
+x-scheme-handler/unknown=brave-origin.desktop
+x-scheme-handler/mailto=userapp-Thunderbird-D312V3.desktop
+x-scheme-handler/mid=userapp-Thunderbird-D312V3.desktop
+message/rfc822=userapp-Thunderbird-D312V3.desktop
+x-scheme-handler/net.thunderbird=userapp-Thunderbird-4EP3V3.desktop
+
+[Added Associations]
+x-scheme-handler/http=zen.desktop;
+x-scheme-handler/https=zen.desktop;
+x-scheme-handler/chrome=zen.desktop;
+text/html=zen.desktop;
+application/x-extension-htm=zen.desktop;
+application/x-extension-html=zen.desktop;
+application/x-extension-shtml=zen.desktop;
+application/xhtml+xml=zen.desktop;
+application/x-extension-xhtml=zen.desktop;
+application/x-extension-xht=zen.desktop;
+x-scheme-handler/mailto=userapp-Thunderbird-D312V3.desktop;
+x-scheme-handler/mid=userapp-Thunderbird-D312V3.desktop;
+message/rfc822=userapp-Thunderbird-D312V3.desktop;
+x-scheme-handler/net.thunderbird=userapp-Thunderbird-4EP3V3.desktop;

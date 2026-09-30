@@ -1,0 +1,16 @@
+#!/bin/sh
+# Wrapper de Dolphin: Kvantum + qt6ct SOLO para este proceso.
+#
+# Por qué existe: si Dolphin corre con el style global de Qt, pisa el look de
+# las demás apps. QT_STYLE_OVERRIDE acá aplica Kvantum únicamente a Dolphin.
+#
+# QT_QPA_PLATFORMTHEME=qt6ct es lo que hace que Qt lea el tema de iconos
+# (AwOken) desde ~/.config/qt6ct/qt6ct.conf. Sin eso, QIcon cae a hicolor
+# y los iconos salen "de sistema" aunque el tema esté instalado.
+#
+# Siempre exec a /usr/bin/dolphin: si no, con ~/.local/bin primero en PATH
+# este script se llamaría a sí mismo.
+export QT_STYLE_OVERRIDE=kvantum
+export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
+exec /usr/bin/dolphin "$@"

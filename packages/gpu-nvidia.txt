@@ -1,0 +1,4 @@
+# nvidia-dkms ya no existe en Arch: ahora es nvidia-open-dkms
+nvidia-open-dkms
+nvidia-utils
+libva-nvidia-driver

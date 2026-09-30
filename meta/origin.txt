@@ -1,0 +1,2 @@
+ORIGIN_HOME=/home/placeholder
+ORIGIN_USER=placeholder

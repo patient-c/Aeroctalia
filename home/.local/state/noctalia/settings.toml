@@ -1,0 +1,55 @@
+config_version = 14
+
+[bar.default]
+background_opacity = 0.4999999888241291
+border = "shadow"
+border_width = 2.0
+center = [ "clock", "weather" ]
+font_family = "Ubuntu Nerd Font Propo"
+font_scale = 1.1499999817460775
+radius = 40
+start = [ "launcher", "wallpaper", "workspaces" ]
+widget_spacing = 11
+
+[control_center]
+show_session_button = false
+show_shortcut_labels = false
+sidebar = "full"
+sidebar_section = "full"
+width = 840
+
+[plugins]
+enabled = [ "yuuto/calculator" ]
+
+[shell]
+avatar_path = "/home/placeholder/Wallpapers/UserIcon/user.png"
+
+    [shell.launcher]
+    app_grid = true
+    categories = false
+
+    [shell.panel]
+    control_center_position = "bottom_center"
+    open_near_click_clipboard = true
+    transparency_mode = "glass"
+
+[theme]
+builtin = "Tokyo-Night"
+community_palette = "Oxocarbon"
+custom_palette = "sushi-mc"
+mode = "auto"
+source = "wallpaper"
+wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    builtin_ids = [ "btop", "cava", "hyprland" ]
+    community_ids = [ "discord", "vscode", "fastfetch", "fzf" ]
+
+[wallpaper]
+directory = "/home/placeholder/Wallpapers"
+
+    [wallpaper.default]
+    path = "/home/placeholder/Wallpapers/Frutiger Aero/perfect_hue_177.jpg"
+
+    [wallpaper.last]
+    path = "/home/placeholder/Wallpapers/Frutiger Aero/perfect_hue_177.jpg"

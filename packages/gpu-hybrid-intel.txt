@@ -1,0 +1,7 @@
+intel-ucode
+nvidia-open-dkms
+nvidia-utils
+libva-nvidia-driver
+vulkan-intel
+sof-firmware
+libva-utils
