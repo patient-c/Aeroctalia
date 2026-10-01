@@ -41,7 +41,7 @@ Al iniciar, elige español o inglés. Requiere Arch Linux, conexión a internet 
 | `--profile=none`   | Instala sin perfil adicional.                                              |
 | `--uninstall`      | Quita solo algunos archivos de Aeroctalia en `$HOME`; no elimina paquetes. |
 
-El perfil `author` incluye wallpapers, pero no fija una ubicación para el clima. Para ver todas las opciones: `./install.sh --help`.
+El perfil `author` incluye wallpapers y algunos settings de Noctalia. Para ver todas las opciones: `./install.sh --help`.
 
 ## English
 
@@ -72,7 +72,7 @@ Choose Spanish or English when prompted. Requires Arch Linux, an internet connec
 | `--profile=none`   | Install without an extra profile.                                       |
 | `--uninstall`      | Remove only some Aeroctalia files in `$HOME`; does not remove packages. |
 
-The `author` profile includes wallpapers but does not set a weather location. See `./install.sh --help` for all options.
+The `author` profile includes wallpapers and some Noctalia settings. See `./install.sh --help` for all options.
 
 ## Documentación / Documentation
 
