@@ -1,0 +1,33 @@
+# animfetch — configuracion
+#
+# Solo se define lo que cambia: tamano, fps y scroll se quedan en los
+# valores por defecto del binario. Una clave mal escrita o un fichero
+# ilegible hacen que animfetch vuelva a los defaults avisando por stderr.
+
+animation = "dolphin-swim"
+
+# --- Colores fijos Frutiger Aero (valores de reserva) ----------------------
+# Cuando color_source = "palette" y el wallpaper cambia, manda el fichero de
+# Noctalia y esto solo rellena los roles que la paleta no llegue a definir.
+
+gradient = ["#DFF7FF", "#82DFF2", "#3DB1E6", "#2574BC", "#63C98F"]
+accent = "#66DCF0"
+value = "#EAF8FF"
+
+# --- Seguir al wallpaper ---------------------------------------------------
+# ~/.config/animfetch/palette.json lo regenera el hook de Noctalia cada vez
+# que cambias el fondo: ~/.config/noctalia/animfetch.toml. En modo --pin
+# animfetch relee el fichero y repinta el fetch solo, sin reiniciar nada.
+# Para regenerarlo a mano:  ~/.local/bin/noctalia-animfetch-palette
+
+color_source = "palette"
+palette_files = ["~/.config/animfetch/palette.json"]
+
+# De la paleta de Noctalia: lima brillante -> verde aqua.
+palette_accent = "primary"
+palette_value = "on_surface"
+# Con el brillo en medio, muy Frutiger Aero.
+palette_gradient = ["primary", "primary_fixed", "tertiary_fixed", "tertiary"]
+
+# Para el degradado brillante que se mueve: descomenta.
+# gradient_scroll = true

@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""Vuelca la paleta de Noctalia en las herramientas de la shell.
+
+Lee ~/.config/animfetch/palette.json (la escribe noctalia-animfetch-palette) y
+genera, en este orden:
+
+  omp    ~/.config/oh-my-posh/paradox-noctalia.omp.json   (prompt)
+  ls     ~/.config/animfetch/lscolors                     (ls / lsd)
+  grep   ~/.config/animfetch/grep_colors                  (grep)
+  bat    ~/.config/bat/themes/noctalia.tmTheme            (bat, y man)
+
+Uso:  noctalia-shell-theme [omp|ls|grep|bat|all]
+
+Los ficheros se escriben SOBRE los existentes, nunca con mv(): el .zshrc
+compara el mtime de lscolors y grep_colors, y un renombrado lo invalidaria.
+"""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+PALETTE = HOME / ".config/animfetch/palette.json"
+OMP_TEMPLATE = HOME / ".config/oh-my-posh/paradox.template.json"
+OMP_OUT = HOME / ".config/oh-my-posh/paradox-noctalia.omp.json"
+LS_OUT = HOME / ".config/animfetch/lscolors"
+GREP_OUT = HOME / ".config/animfetch/grep_colors"
+BAT_OUT = HOME / ".config/bat/themes/noctalia.tmTheme"
+
+# ---------------------------------------------------------------- paletas ----
+
+# omp: fondo de cada segmento -> (rol, color de reserva del paradox original)
+OMP_BG = {
+    "bg-os": ("surface_container_high", "#1B2A3D"),
+    "bg-path": ("primary", "#4A9FD8"),
+    "bg-git": ("tertiary", "#5FC9A3"),
+    "bg-go": ("secondary", "#74B9FF"),
+    "bg-python": ("primary_fixed_dim", "#B0E0E6"),
+    "bg-node": ("tertiary_fixed_dim", "#7ED6B8"),
+    "bg-rust": ("secondary_fixed_dim", "#E8A87C"),
+    "bg-aws": ("secondary_fixed", "#E8A87C"),
+    "bg-root": ("primary_fixed", "#FFE066"),
+    "bg-hora": ("tertiary_fixed", "#B19CD9"),
+    "bg-error": ("error", "#E76F51"),
+    "bg-aviso": ("error_container", "#F4A261"),
+}
+# omp: texto de cada segmento -> los fondos sobre los que puede verse
+OMP_FG = {
+    "fg-os": ["bg-os"],
+    "fg-path": ["bg-path"],
+    "fg-git": ["bg-git", "bg-aviso", "bg-error", "bg-path"],
+    "fg-lang": ["bg-go", "bg-python", "bg-node", "bg-rust"],
+    "fg-root": ["bg-root", "bg-aws", "bg-path", "bg-error"],
+    "fg-hora": ["bg-hora"],
+    "fg-error": ["bg-error"],
+    "fg-rprompt": [],  # sin fondo propio: se lee sobre el fondo de la terminal
+}
+
+# ls: tipo de entrada -> (rol, atributos). Se conservan los grupos y las
+# extensiones del LS_COLORS que tenias, solo cambian los colores.
+LS_SIMPLE = {
+    "di": ("primary", "1"),
+    "ln": ("primary_fixed_dim", ""),
+    "so": ("tertiary", ""),
+    "pi": ("tertiary_fixed_dim", ""),
+    "ex": ("tertiary_fixed", "1"),
+    "bd": ("secondary_fixed_dim", "1"),
+    "cd": ("secondary_fixed_dim", "1"),
+    "mi": ("outline", ""),
+    "or": ("error", ""),
+}
+LS_PAIRED = {
+    "su": "on_error_container",
+    "sg": "secondary_fixed",
+    "tw": "primary_fixed",
+    "ow": "inverse_primary",
+    "st": "primary_container",
+}
+LS_GROUPS = [
+    ("secondary_fixed_dim", "", "tar tgz gz zip rar 7z bz2 xz deb rpm"),
+    ("primary_fixed_dim", "", "jpg jpeg png gif bmp svg webp ico"),
+    ("tertiary_fixed_dim", "", "mp4 mkv avi mov webm flv"),
+    ("tertiary", "", "mp3 flac wav ogg m4a"),
+    ("secondary", "", "pdf doc docx xls xlsx ppt pptx"),
+    ("on_surface_variant", "", "txt md"),
+    ("outline", "", "log"),
+    ("on_surface_variant", "", "conf json yaml yml xml"),
+    ("tertiary_fixed", "1", "sh"),
+    ("secondary", "", "py"),
+    ("primary", "", "js"),
+    ("tertiary", "", "php"),
+    ("secondary", "", "sql"),
+    ("outline", "", "bak tmp swp"),
+]
+
+# bat: ambito TextMate -> (rol, estilo)
+BAT_SCOPES = [
+    ("", "on_surface", ""),
+    ("comment", "outline", "italic"),
+    ("comment.block.documentation", "outline", ""),
+    ("keyword", "primary", ""),
+    ("keyword.control", "tertiary", ""),
+    ("keyword.control.import", "tertiary_fixed_dim", ""),
+    ("keyword.operator", "primary_fixed_dim", ""),
+    ("storage", "primary", ""),
+    ("storage.type", "primary_fixed", ""),
+    ("entity.name.function", "secondary", ""),
+    ("support.function", "secondary_fixed_dim", ""),
+    ("entity.name.type", "primary_fixed", ""),
+    ("support.type", "tertiary_fixed", ""),
+    ("support", "tertiary", ""),
+    ("string", "tertiary_fixed_dim", ""),
+    ("string.quoted", "tertiary_fixed_dim", ""),
+    ("string.regexp", "secondary", ""),
+    ("string.other.link", "tertiary", "underline"),
+    ("constant", "primary_fixed_dim", ""),
+    ("constant.numeric", "primary_fixed_dim", ""),
+    ("constant.character.escape", "tertiary", ""),
+    ("variable", "secondary", ""),
+    ("variable.parameter", "secondary_fixed_dim", ""),
+    ("variable.language", "primary_fixed_dim", ""),
+    ("markup.heading", "primary", "bold"),
+    ("markup.bold", "primary_fixed", "bold"),
+    ("markup.italic", "tertiary_fixed_dim", "italic"),
+    ("markup.underline", "tertiary", "underline"),
+    ("markup.underline.link", "tertiary", "underline"),
+    ("markup.raw", "outline", ""),
+    ("meta.header", "tertiary", "bold"),
+    ("meta.tag", "secondary", ""),
+    ("meta.preprocessor", "tertiary", ""),
+    ("meta.function", "secondary_fixed_dim", ""),
+    ("meta.diff", "on_surface_variant", ""),
+    ("meta.diff.range", "surface_container_high", ""),
+    ("meta.diff.header", "primary", "bold"),
+]
+
+FALLBACK = {
+    "primary": "#afd700", "primary_fixed": "#d7d7ff", "primary_fixed_dim": "#5fafff",
+    "secondary": "#87ffaf", "secondary_fixed": "#afd7d7", "secondary_fixed_dim": "#d7af5f",
+    "tertiary": "#af87ff", "tertiary_fixed": "#5fd7af", "tertiary_fixed_dim": "#87d7ff",
+    "inverse_primary": "#875fff", "primary_container": "#d7af87",
+    "on_error_container": "#ffafaf", "outline": "#949494", "error": "#ff8787",
+    "on_surface": "#f3f3f2", "on_surface_variant": "#c6c6c6", "surface": "#282e0f",
+    "terminal_background": "#282e0f",
+}
+
+# --------------------------------------------------------------- utilidades --
+
+
+def luminance(color):
+    h = color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    chans = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    chans = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in chans]
+    return 0.2126 * chans[0] + 0.7152 * chans[1] + 0.0722 * chans[2]
+
+
+def contrast(a, b):
+    la, lb = luminance(a), luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def best_fg(backgrounds, pal):
+    """Elige on_surface o surface: el que tenga el PEOR contraste mas alto,
+    para que valga sobre cualquiera de los fondos."""
+    light, dark = pal["on_surface"], pal["surface"]
+    best, score = dark, -1.0
+    for cand in (light, dark):
+        worst = min(contrast(cand, bg) for bg in backgrounds)
+        if worst > score:
+            best, score = cand, worst
+    return best
+
+
+def rgb(color):
+    h = color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return ";".join(str(int(h[i:i + 2], 16)) for i in (0, 2, 4))
+
+
+def sgr(pal, role, attr=""):
+    return ";".join(x for x in (attr, "38;2;" + rgb(pal[role])) if x)
+
+
+def palette():
+    # Si Noctalia aun no ha escrito la paleta (arranque en frio), generarla.
+    if not PALETTE.is_file():
+        gen = HOME / ".local/bin/noctalia-animfetch-palette"
+        if gen.is_file():
+            subprocess.run([str(gen)], stderr=subprocess.DEVNULL)
+    try:
+        pal = json.loads(PALETTE.read_text())
+    except (OSError, ValueError) as e:
+        sys.exit(f"noctalia-shell-theme: no leo {PALETTE}: {e}")
+    for role, color in FALLBACK.items():
+        pal.setdefault(role, color)
+    return pal
+
+
+def write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+# ------------------------------------------------------------------ omp -----
+
+
+def build_omp(pal):
+    try:
+        text = OMP_TEMPLATE.read_text()
+    except OSError as e:
+        sys.exit(f"noctalia-shell-theme: no leo {OMP_TEMPLATE}: {e}")
+
+    bgs = {t: pal.get(role) or fb for t, (role, fb) in OMP_BG.items()}
+    tokens = dict(bgs)
+    terminal_bg = pal.get("terminal_background") or pal["surface"]
+    for token, on in OMP_FG.items():
+        tokens[token] = best_fg([terminal_bg] if not on else [bgs[b] for b in on], pal)
+
+    for token, color in tokens.items():
+        text = text.replace(f"%{token}%", color)
+
+    import re
+    left = sorted(set(re.findall(r"%[a-z-]+%", text)))
+    if left:
+        sys.exit(f"noctalia-shell-theme: marcadores sin sustituir: {left}")
+    return text
+
+# ------------------------------------------------------------------- ls -----
+
+
+def build_ls(pal):
+    parts = [f"{k}={sgr(pal, role, attr)}" for k, (role, attr) in LS_SIMPLE.items()]
+    for key, role in LS_PAIRED.items():
+        bg = pal[role]
+        parts.append(f"{key}=48;2;{rgb(bg)};38;2;{rgb(best_fg([bg], pal))}")
+    for role, attr, exts in LS_GROUPS:
+        color = sgr(pal, role, attr)
+        parts.extend(f"*.{e}={color}" for e in exts.split())
+    return ":".join(parts)
+
+# ----------------------------------------------------------------- grep -----
+
+# ms coincidencia, mc coincidencia en contexto, sl separador de --,
+# cx prefijo de linea de contexto, ne reset, rv nombre en recursion (-r).
+GREP_PARTS = [
+    ("ms", "primary", "1"),
+    ("mc", "tertiary_fixed_dim", ""),
+    ("sl", "outline", ""),
+    ("cx", "on_surface_variant", ""),
+    ("ne", None, "0"),
+    ("rv", "secondary", ""),
+]
+
+
+def build_grep(pal):
+    parts = []
+    for key, role, attr in GREP_PARTS:
+        parts.append(f"{key}={attr if role is None else sgr(pal, role, attr)}")
+    return ":".join(parts)
+
+# ------------------------------------------------------------------ bat -----
+
+PLIST = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" \
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>name</key>
+\t<string>noctalia</string>
+\t<key>settings</key>
+\t<array>
+\t\t<dict>
+\t\t\t<key>settings</key>
+\t\t\t<dict>
+\t\t\t\t<key>background</key>
+\t\t\t\t<string>{bg}</string>
+\t\t\t\t<key>foreground</key>
+\t\t\t\t<string>{fg}</string>
+\t\t\t</dict>
+\t\t</dict>
+{scopes}\t</array>
+</dict>
+</plist>
+"""
+
+
+def build_bat(pal):
+    blocks = []
+    for scope, role, style in BAT_SCOPES:
+        settings = ["<key>foreground</key>", f"<string>{pal[role]}</string>"]
+        if style:
+            settings += ["<key>fontStyle</key>", f"<string>{style}</string>"]
+        block = ["\t\t<dict>"]
+        if scope:
+            block += ["\t\t\t<key>name</key>", f"\t\t\t<string>{scope}</string>",
+                      "\t\t\t<key>scope</key>", f"\t\t\t<string>{scope}</string>"]
+        block += ["\t\t\t<key>settings</key>", "\t\t\t<dict>",
+                  "\t\t\t\t" + "\n\t\t\t\t".join(settings),
+                  "\t\t\t</dict>", "\t\t</dict>"]
+        blocks.append("\n".join(block))
+    return PLIST.format(
+        bg=pal.get("terminal_background") or pal["surface"],
+        fg=pal["on_surface"],
+        scopes="\n".join(blocks) + "\n",
+    )
+
+
+def bat_cache_rebuild():
+    # bat mete los temas de usuario en un binario aparte (~/.cache/bat/themes.bin)
+    # y no los relee del .tmTheme hasta que se reconstruye ese binario. Sin esto,
+    # el .tmTheme nuevo se queda sin usar y bat avisa "Unknown theme".
+    r = subprocess.run(["bat", "cache", "--build"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return r.returncode == 0
+
+# ------------------------------------------------------------------ main ----
+
+
+BUILDERS = {
+    "omp": (OMP_OUT, build_omp, None),
+    "ls": (LS_OUT, build_ls, "\n"),
+    "grep": (GREP_OUT, build_grep, "\n"),
+    "bat": (BAT_OUT, build_bat, None),
+}
+
+# rebuilt() se llama tras escribir el fichero de ese generador
+AFTER = {"bat": bat_cache_rebuild}
+
+
+def main():
+    what = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if what not in BUILDERS and what != "all":
+        sys.exit(f"noctalia-shell-theme: desconocido {what!r}; "
+                 f"use {'|'.join(BUILDERS)} o 'all'")
+    names = BUILDERS if what == "all" else {what: BUILDERS[what]}
+
+    pal = palette()
+    for name, (path, build, tail) in names.items():
+        try:
+            write(path, build(pal) + (tail or ""))
+        except (OSError, KeyError) as e:
+            sys.exit(f"noctalia-shell-theme: no genero {name}: {e}")
+        if name in AFTER and not AFTER[name]():
+            sys.exit(f"noctalia-shell-theme: no pude reconstruir la cache de {name}")
+
+
+if __name__ == "__main__":
+    main()

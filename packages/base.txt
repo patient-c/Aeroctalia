@@ -57,6 +57,7 @@ bash
 bat
 fzf
 lsd
+zstd
 git
 base-devel
 sudo

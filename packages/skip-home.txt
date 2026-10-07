@@ -20,3 +20,11 @@
 .local/share/icons/.icon-theme.cache
 .p7zip
 .gitconfig
+# Generados por los hooks de Noctalia (ver home/.local/bin/noctalia-shell-theme).
+# Se reconstruyen en cada arranque y en cada cambio de paleta: si se copiaran
+# aqui, congelarian la paleta de quien desarrollo Aeroctalia.
+.config/animfetch/palette.json
+.config/animfetch/lscolors
+.config/animfetch/grep_colors
+.config/oh-my-posh/paradox-noctalia.omp.json
+.config/bat/themes/

@@ -1,0 +1,36 @@
+# Hooks de Noctalia para que animfetch, oh-my-posh, ls/lsd, grep y bat sigan
+# la paleta del wallpaper.
+# Documentacion: https://docs.noctalia.dev/noctalia/automation/hooks/
+#
+# install.sh sustituye /home/placeholder por el HOME real al instalar.
+#
+# Orden: primero la paleta, despues todo lo que la consume.
+# Que se actualiza solo, y que no:
+#   animfetch  -> si, en --pin vigila palette.json
+#   ls / grep  -> si, el precmd de ~/.config/zsh/aeroctalia-themes.zsh los relee
+#   bat        -> si, bat relee el tema (y su cache lo reconstruye el generador)
+#   omp prompt -> no: lo cachea en memoria, hace falta `omp_reload`
+#
+# OJO: colors_changed NO salta con un cambio de modo claro/oscuro (comprobado),
+# solo cuando la paleta se resuelve de nuevo. Por eso no se promete seguir al
+# toggle de modo.
+
+[hooks]
+
+# Al terminar de arrancar Noctalia, para tener paleta antes del primer cambio.
+started = [
+  "/home/placeholder/.local/bin/noctalia-animfetch-palette",
+  "/home/placeholder/.local/bin/noctalia-shell-theme",
+]
+
+# Cada vez que cambias el fondo de pantalla.
+wallpaper_changed = [
+  "/home/placeholder/.local/bin/noctalia-animfetch-palette",
+  "/home/placeholder/.local/bin/noctalia-shell-theme",
+]
+
+# Y si cambian los colores sin cambiar el fondo (esquema de paleta).
+colors_changed = [
+  "/home/placeholder/.local/bin/noctalia-animfetch-palette",
+  "/home/placeholder/.local/bin/noctalia-shell-theme",
+]
