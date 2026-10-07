@@ -1115,6 +1115,115 @@ if [[ $DRY -eq 0 && $VERIFY_ONLY -eq 0 ]]; then
   [[ ! -e "$NEW_HOME/.gtkrc-2.0.mine" ]] && { : > "$NEW_HOME/.gtkrc-2.0.mine"; ok "$(T "Created .gtkrc-2.0.mine" "Se creó .gtkrc-2.0.mine")"; }
 fi
 
+# ══════════════════════════════════════════════════════ KrystalSVG ═══════
+# El tema de iconos va como asset de nuestra propia release, no como paquete:
+# son 477 MB descomprimido y no esta en ningun repositorio ni en la AUR. Se
+# verifica por sha256 y solo se descarga una vez.
+#
+# El tarball ya lleva resueltos los stubs (el upstream usa nombres que no
+# existen y dejaba ~40 iconos de apps modernas vacios). Aqui solo se asegura
+# Inherits= y la cache de GTK.
+
+KS_BASE_URL="https://github.com/patient-c/Aeroctalia/releases/download"
+
+krystalsvg_meta() {
+  local f="$REPO/meta/krystalsvg.conf"
+  [[ -f $f ]] || return 1
+  KS_ASSET="$(sed -n 's/^ASSET=//p' "$f" | head -1 | tr -d '\r')"
+  KS_SHA="$(sed -n 's/^SHA256=//p' "$f" | head -1 | tr -d '[:space:]')"
+  KS_DIR="$(sed -n 's/^DIR=//p' "$f" | head -1 | tr -d '\r')"
+  [[ -n $KS_ASSET && -n $KS_SHA && -n $KS_DIR ]]
+}
+
+krystalsvg_patch() {
+  # OJO: en una sola linea NO, "local d=... idx=$d/index.theme" expande $d antes
+  # de asignarlo y idx se queda sin el nombre del tema. Bash expande todos los
+  # argumentos de local antes de ejecutar ninguno.
+  local d="$NEW_HOME/.local/share/icons/$KS_DIR"
+  local idx="$d/index.theme"
+  local indent
+  # OJO: en este index.theme las claves van CON sangria ("  Inherits=..."), asi
+  # que un '^Inherits=' no casa y el parche no haria nada.
+  # Solo se guarda la sangria, nunca la clave, o saldria
+  # "Inherits=Inherits=Papirus,hicolor".
+  indent="$(sed -n 's/^\([[:space:]]*\)[Ii]nherits=.*/\1/p' "$idx" 2>/dev/null | head -1)"
+  if grep -qEi '^[[:space:]]*inherits=.*bullschit' "$idx" 2>/dev/null; then
+    cp -a "$idx" "$idx.aeroctalia.bak" 2>/dev/null || true
+    if sed -i -E "s|^[[:space:]]*[Ii]nherits=.*|${indent}Inherits=Papirus,hicolor|" "$idx" 2>/dev/null; then
+      ok "$(T "KrystalSVG: Inherits=Papirus,hicolor" "KrystalSVG: Inherits=Papirus,hicolor")"
+      info "    $(T "the upstream value pointed at a theme that does not exist on Arch" "el valor del upstream apuntaba a un tema que no existe en Arch")"
+    else
+      warn "$(T "Could not patch Inherits in KrystalSVG" "No se pudo parchear Inherits en KrystalSVG")"
+    fi
+  else
+    ok "$(T "KrystalSVG: Inherits already correct" "KrystalSVG: Inherits ya correcto")"
+  fi
+  [[ $USER_ONLY -eq 1 ]] || as_root gtk-update-icon-cache -f -t "$d" >/dev/null 2>&1 || true
+}
+
+krystalsvg_fetch() {
+  local url="$KS_BASE_URL/v$RICE_VERSION/$KS_ASSET" tmp got
+  tmp="$(mktemp -d 2>/dev/null)" || { warn "$(T "Could not create a temp dir" "No se pudo crear un directorio temporal")"; return 1; }
+  info "$(T "Downloading" "Descargando") $url"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL --retry 2 --connect-timeout 20 -o "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
+      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q --tries=2 -O "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
+      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
+  else
+    rm -rf "$tmp"
+    warn "$(T "Neither curl nor wget is available" "No hay curl ni wget")"
+    return 1
+  fi
+
+  got="$(sha256sum "$tmp/$KS_ASSET" 2>/dev/null | cut -d' ' -f1)"
+  if [[ "$got" != "$KS_SHA" ]]; then
+    rm -rf "$tmp"
+    warn "$(T "sha256 mismatch; not installing the icon theme" "sha256 no coincide; no se instala el tema de iconos")"
+    info "    $(T "expected" "esperado"): $KS_SHA"
+    info "    $(T "got" "obtenido"):     ${got:-?}"
+    return 1
+  fi
+  ok "$(T "sha256 verified" "sha256 verificado")"
+
+  mkdir -p "$NEW_HOME/.local/share/icons" 2>/dev/null || { rm -rf "$tmp"; return 1; }
+  if ! tar --zstd -xf "$tmp/$KS_ASSET" -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
+    # zstd puede faltar si se instaló con --no-packages
+    if ! zstd -d -q -c "$tmp/$KS_ASSET" 2>/dev/null | tar -xf - -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
+      rm -rf "$tmp"; warn "$(T "Could not extract the icon theme (missing zstd?)" "No se pudo extraer el tema (¿falta zstd?)")"; return 1;
+    fi
+  fi
+  rm -rf "$tmp"
+  [[ -d "$NEW_HOME/.local/share/icons/$KS_DIR" ]] || {
+    warn "$(T "Archive did not contain" "El archivo no traía") $KS_DIR/"; return 1; }
+  return 0
+}
+
+install_krystalsvg() {
+  local d="$NEW_HOME/.local/share/icons"
+  if ! krystalsvg_meta; then
+    warn "$(T "meta/krystalsvg.conf is missing; skipping the icon theme" "Falta meta/krystalsvg.conf; se omite el tema de iconos")"
+    return 0
+  fi
+  if [[ -f "$d/$KS_DIR/index.theme" ]]; then
+    if [[ $DRY -eq 0 ]]; then
+      ok "$(T "KrystalSVG already installed" "KrystalSVG ya instalado")"
+      krystalsvg_patch
+    else
+      info "$(T "[dry-run] KrystalSVG is already installed" "[dry-run] KrystalSVG ya está instalado")"
+    fi
+    return 0
+  fi
+  if [[ $DRY -eq 1 ]]; then
+    info "$(T "[dry-run] would download" "[dry-run] se descargaría") $KS_BASE_URL/v$RICE_VERSION/$KS_ASSET"
+    info "$(T "[dry-run] then extract, verify the sha256 and patch Inherits" "[dry-run] luego extraer, verificar el sha256 y parchear Inherits")"
+    return 0
+  fi
+  krystalsvg_fetch && krystalsvg_patch && \
+    ok "$(T "KrystalSVG installed" "KrystalSVG instalado")"
+}
+
 # ══════════════════════════════════════════════════════ 7. assets ════════
 step "$(T "Resources" "Recursos")"
 if [[ $VERIFY_ONLY -eq 1 ]]; then
@@ -1146,6 +1255,7 @@ else
       warn "$(T "Image directory does not exist:" "No existe el directorio de imágenes:") $IMAGES"
     fi
   fi
+  install_krystalsvg
 fi
 
 # ══════════════════════════════════════════════════════ 8. /etc ══════════
