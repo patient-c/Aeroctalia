@@ -534,6 +534,7 @@ step "$(T "Plan" "Plan")"
 printf '     %-28s %s\n' "$(T "version" "versión")" "install.sh $RICE_VERSION"
 printf '     %-28s %s\n' "$(T "destination" "destino")" "$NEW_HOME"
 printf '     %-28s %s\n' "Log" "$LOG"
+
 if [[ $VERIFY_ONLY -eq 1 ]]; then
   printf '     %-28s %s\n' "$(T "mode" "modo")" "$(T "verification only" "solo verificación")"
 elif [[ $UNINSTALL -eq 1 ]]; then
@@ -663,6 +664,29 @@ install_krystalsvg() {
     ok "$(T "KrystalSVG installed" "KrystalSVG instalado")"
 }
 
+
+# Genera los ficheros de color a partir de la paleta de Noctalia, para que una
+# instalacion recien hecha ya tenga prompt, ls, grep y bat con color sin
+# depender del hook. Es best-effort: si Noctalia todavia no ha escrito
+# settings.toml, el .zshrc los regenera en el siguiente arranque.
+rice_generate_themes() {
+  local pal="$NEW_HOME/.local/bin/noctalia-animfetch-palette"
+  local thm="$NEW_HOME/.local/bin/noctalia-shell-theme"
+  local n=0
+
+  [[ -x $pal && -x $thm ]] || return 0
+  chmod +x "$NEW_HOME/.local/bin/noctalia-animfetch-palette" \
+            "$NEW_HOME/.local/bin/noctalia-shell-theme" 2>/dev/null || true
+
+  HOME="$NEW_HOME" "$pal" >/dev/null 2>&1 && n=$((n+1))
+  if HOME="$NEW_HOME" "$thm" >/dev/null 2>&1; then
+    ok "$(T "Colours generated from the Noctalia palette (prompt, ls, grep, bat)" "Colores generados desde la paleta de Noctalia (prompt, ls, grep, bat)")"
+    [[ $n -eq 1 ]] && ok "$(T "palette.json written" "palette.json escrito")"
+  else
+    warn "$(T "Could not generate the colours yet" "No se pudieron generar los colores todavia")"
+    info "    $(T "they are regenerated on the next login or wallpaper change" "se regeneran en el proximo inicio de sesion o al cambiar el fondo")"
+  fi
+}
 
 do_uninstall() {
   step "$(T "Remove Aeroctalia files" "Quitar archivos de Aeroctalia")"
@@ -1767,7 +1791,9 @@ elif [[ $DRY -eq 1 ]]; then
 else
   rice_write_dolphin
   rice_fix_icons
+  rice_generate_themes
 fi
+
 
 # ══════════════════════════════════════════════════════ 11. Ajustes ══════
 step "$(T "Final settings" "Ajustes finales")"
