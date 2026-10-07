@@ -8,15 +8,15 @@
 #
 # Uso:
 #   ./tools/qt-icon-probe.sh                    # el tema que qt6ct tenga puesto
-#   ./tools/qt-icon-probe.sh AwOken             # forzando un tema
-#   ./tools/qt-icon-probe.sh AwOken Adwaita     # comparando varios
+#   ./tools/qt-icon-probe.sh KrystalSVG-…      # forzando un tema
+#   ./tools/qt-icon-probe.sh KrystalSVG-… Papirus   # comparando varios
 #
 # Salida sana:
-#   themeName: AwOken   index.theme: /home/…/.local/share/icons/AwOken/index.theme
+#   themeName: KrystalSVG-…  index.theme: /home/…/.local/share/icons/KrystalSVG-…/index.theme
 #   Type= en minuscula: 0
 #   VEREDICTO: los iconos vienen del tema. ✓
 #
-# LA FIRMA DEL BUG: themeName dice AwOken pero index.theme dice NO, o el md5 de
+# LA FIRMA DEL BUG: themeName dice KrystalSVG-… pero index.theme dice NO, o el md5 de
 # "folder" es el mismo que el de hicolor. Eso significa que Qt está dibujando
 # los iconos de otro tema sin avisar.
 set -euo pipefail

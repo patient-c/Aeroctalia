@@ -2,7 +2,7 @@
 # verify-dolphin.sh — los 3 caminos de arranque + el tema de iconos.
 #
 # Dolphin en esta rice no es "una app con un tema". Hay TRES procesos
-# distintos que pueden abrirla, y Qt6 tiene un bug con AwOken que hace
+# distintos que pueden abrirla, y Qt6 tiene un bug con este tema que hace
 # que los iconos caigan a hicolor EN SILENCIO.
 #
 # Uso (desde el repo, o copiado a PATH):
@@ -97,7 +97,7 @@ if [[ -f "$drop" ]]; then
     || { err "el drop-in no inyecta Kvantum"; hit; }
   grep -q 'QT_QPA_PLATFORMTHEME' "$drop" \
     && ok "Environment=QT_QPA_PLATFORMTHEME (iconos en el camino D-Bus)" \
-    || { err "sin QT_QPA_PLATFORMTHEME en el drop-in: 'mostrar en carpeta' sale sin AwOken"; hit; }
+    || { err "sin QT_QPA_PLATFORMTHEME en el drop-in: 'mostrar en carpeta' sale sin el tema de iconos"; hit; }
 else
   err "sin drop-in: el navegador abre Dolphin por D-Bus y se saltea wrapper y .desktop"
   info "ese es el camino que más gente reporta como 'Dolphin se abre sin tema'"
@@ -125,17 +125,20 @@ else
   info "los que arranca systemd (Dolphin desde el navegador) NO, hasta el próximo login."
 fi
 
-# ── 5. tema de iconos AwOken / Qt6 ───────────────────────────────────────
-printf '\n%s[5/5] iconos AwOken (el bug de Qt6)%s\n' "$C" "$N"
-ic_sys="/usr/share/icons/AwOken"
-ic_usr="$HOME_DIR/.local/share/icons/AwOken"
+# ── 5. tema de iconos / Qt6 ──────────────────────────────────────────────
+printf '\n%s[5/5] iconos (el bug de Qt6)%s\n' "$C" "$N"
+# El tema se lee de la configuracion: no esta hardcodeado a proposito.
+ic_name="$(grep -A2 '^\[Icons\]' "$HOME_DIR/.config/kdeglobals" 2>/dev/null | grep Theme= | cut -d= -f2)"
+[[ -z "$ic_name" ]] && ic_name="$(grep -E '^icon_theme=' "$HOME_DIR/.config/qt6ct/qt6ct.conf" 2>/dev/null | cut -d= -f2)"
+ic_sys="/usr/share/icons/$ic_name"
+ic_usr="$HOME_DIR/.local/share/icons/$ic_name"
 ic_idx=""
-for i in "$ic_usr/index.theme" "$HOME_DIR/.icons/AwOken/index.theme" "$ic_sys/index.theme"; do
+for i in "$ic_usr/index.theme" "$HOME_DIR/.icons/$ic_name/index.theme" "$ic_sys/index.theme"; do
   [[ -f "$i" ]] && { ic_idx="$i"; break; }
 done
 if [[ -z "$ic_idx" ]]; then
-  err "no hay index.theme de AwOken — el paquete awoken-icons no está?"
-  info "    yay -S awoken-icons"
+  err "no hay index.theme de '$ic_name'"
+  info "    el instalador lo baja como asset de la release de Aeroctalia"
   hit
 else
   ok "index.theme que manda: $ic_idx"
@@ -143,7 +146,7 @@ else
   bad="${bad:-0}"
   if [[ "$bad" -gt 0 ]]; then
     err "Type=scalable en minúscula ($bad dirs) — Qt6 no lo reconoce y CAE A HICOLOR"
-    info "sin error, sin warning, QIcon::themeName() sigue diciendo AwOken"
+    info "sin error, sin warning, QIcon::themeName() sigue diciendo $ic_name"
     info "arreglo:  ./install.sh --no-packages"
     hit
   else
@@ -179,10 +182,10 @@ else
 fi
 
 qt6ct="$HOME_DIR/.config/qt6ct/qt6ct.conf"
-if grep -qE '^icon_theme=AwOken$' "$qt6ct" 2>/dev/null; then
-  ok "qt6ct icon_theme=AwOken"
+if grep -qxF "icon_theme=$ic_name" "$qt6ct" 2>/dev/null; then
+  ok "qt6ct icon_theme=$ic_name"
 else
-  warn "qt6ct no tiene icon_theme=AwOken"
+  warn "qt6ct no tiene icon_theme=$ic_name"
   info "el nombre para Qt sale de acá, NO de kdeglobals"
   hit
 fi
@@ -203,7 +206,7 @@ if [[ $PROBE -eq 1 ]]; then
   printf '\n%s── sonda Qt6%s\n' "$C" "$N"
   here="$(cd "$(dirname "$0")" && pwd)"
   if [[ -x "$here/qt-icon-probe.sh" ]]; then
-    "$here/qt-icon-probe.sh" AwOken || true
+    "$here/qt-icon-probe.sh" "$ic_name" || true
   else
     warn "no encuentro tools/qt-icon-probe.sh"
   fi

@@ -148,9 +148,12 @@ fastfetch
 
 
 export PATH="$HOME/.local/bin:$PATH"
-if [[ -f "$HOME/.cache/oh-my-posh/themes/paradox.omp.json" ]]; then
-  eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/paradox.omp.json")"
-fi
+
+# Colores que siguen a la paleta del wallpaper: prompt, ls, grep y bat.
+# El prompt se inicializa ahi, no en la linea de abajo.
+[[ -r "$HOME/.config/zsh/aeroctalia-themes.zsh" ]] \
+  && source "$HOME/.config/zsh/aeroctalia-themes.zsh"
+
 # opencode
 if [[ -d "$HOME/.opencode/bin" ]]; then
   export PATH="$HOME/.opencode/bin:$PATH"

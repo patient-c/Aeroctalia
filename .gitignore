@@ -27,3 +27,10 @@ home/.config/kwinoutputconfig.json
 home/.config/GIMP/
 home/.config/dconf/
 home/.config/alacritty/
+
+# Salidas de los hooks de Noctalia: se generan en la maquina destino.
+home/.config/animfetch/palette.json
+home/.config/animfetch/lscolors
+home/.config/animfetch/grep_colors
+home/.config/oh-my-posh/paradox-noctalia.omp.json
+home/.config/bat/themes/

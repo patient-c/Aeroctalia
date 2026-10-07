@@ -1,6 +1,6 @@
-# Dolphin, Kvantum e iconos AwOken
+# Dolphin, Kvantum e iconos KrystalSVG
 
-Dolphin puede abrirse de tres formas distintas, y cada una necesita las variables de tema de Qt. Además, Qt6 no interpreta bien el `index.theme` de AwOken y puede mostrar los iconos de `hicolor` sin avisar.
+Dolphin puede abrirse de tres formas distintas, y cada una necesita las variables de tema de Qt. Además, Qt6 no interpreta bien el `index.theme` de este tema y puede mostrar los iconos de `hicolor` sin avisar.
 
 `install.sh` configura todo esto automáticamente. Para comprobarlo:
 
@@ -23,7 +23,7 @@ Todas usan estas variables:
 | Variable                     | Función                                        |
 | ---------------------------- | ---------------------------------------------- |
 | `QT_STYLE_OVERRIDE=kvantum`  | Estilo de los widgets (KvRoughGlass).          |
-| `QT_QPA_PLATFORMTHEME=qt6ct` | Permite a Qt leer el tema de iconos AwOken.    |
+| `QT_QPA_PLATFORMTHEME=qt6ct` | Permite a Qt leer el tema de iconos.          |
 
 `~/.config/environment.d/50-rice.conf` aplica la variable de tema a toda la sesión. Requiere **cerrar sesión y volver a entrar**:
 
@@ -32,14 +32,14 @@ systemctl --user show-environment | grep QT_QPA_PLATFORMTHEME
 # si no muestra nada, falta volver a iniciar sesión
 ```
 
-## Los iconos AwOken
+## El tema de iconos
 
-El paquete `awoken-icons` declara sus directorios con `Type=scalable` (minúscula), y Qt6 no lo reconoce. Cuando eso ocurre, usa los iconos de `hicolor` sin mostrar ningún error.
+KrystalSVG no es un paquete: `install.sh` lo descarga de la release de Aeroctalia, verifica el sha256 y lo extrae en `~/.local/share/icons/`. Los stubs que el upstream deja colgando vienen ya resueltos en el tarball, y `install.sh` se asegura de que `index.theme` herede de `Papirus,hicolor` (el valor del upstream apunta a un tema que no existe en Arch).
 
-`install.sh` lo corrige con un `index.theme` parcheado en `~/.local/share/icons/AwOken/` y lo regenera si el paquete se actualiza. Para comprobar qué iconos usa Qt:
+`install.sh` lo comprueba con `tools/qt-icon-probe.sh`, que mide de verdad qué tema resolvió Qt y no se fía de los metadatos del paquete. Para comprobarlo a mano:
 
 ```
-./tools/qt-icon-probe.sh AwOken
+./tools/qt-icon-probe.sh KrystalSVG-Plasma5up-scalable-icontheme-blackysgate.de
 ```
 
 ## Si algo no funciona
@@ -54,9 +54,9 @@ Después, cierra sesión y vuelve a entrar.
 
 ## English
 
-# Dolphin, Kvantum and AwOken icons
+# Dolphin, Kvantum and KrystalSVG icons
 
-Dolphin can be launched in three different ways, and each one needs the Qt theme variables. In addition, Qt6 does not parse AwOken's `index.theme` correctly and may silently show `hicolor` icons instead.
+Dolphin can be launched in three different ways, and each one needs the Qt theme variables. In addition, Qt6 does not always parse this theme's `index.theme` correctly and may silently show `hicolor` icons instead.
 
 `install.sh` sets all of this up automatically. To check it:
 
@@ -79,7 +79,7 @@ All of them use these variables:
 | Variable                     | Purpose                                        |
 | ---------------------------- | ---------------------------------------------- |
 | `QT_STYLE_OVERRIDE=kvantum`  | Widget style (KvRoughGlass).                   |
-| `QT_QPA_PLATFORMTHEME=qt6ct` | Lets Qt read the AwOken icon theme.            |
+| `QT_QPA_PLATFORMTHEME=qt6ct` | Lets Qt read the icon theme.                  |
 
 `~/.config/environment.d/50-rice.conf` applies the theme variable to the whole session. It requires you to **log out and back in**:
 
@@ -88,14 +88,14 @@ systemctl --user show-environment | grep QT_QPA_PLATFORMTHEME
 # empty output means you have not logged in again yet
 ```
 
-## AwOken icons
+## The icon theme
 
-The `awoken-icons` package declares its directories with `Type=scalable` (lowercase), which Qt6 does not recognize. When that happens, Qt uses the `hicolor` icons without showing any error.
+KrystalSVG is not a package: `install.sh` downloads it from the Aeroctalia release, verifies its sha256 and extracts it into `~/.local/share/icons/`. The broken stubs in the upstream are already resolved inside the tarball, and `install.sh` makes sure `index.theme` inherits from `Papirus,hicolor` (the upstream value points at a theme that does not exist on Arch).
 
-`install.sh` fixes this with a patched `index.theme` in `~/.local/share/icons/AwOken/` and regenerates it if the package is updated. To check which icons Qt is using:
+`install.sh` checks this with `tools/qt-icon-probe.sh`, which measures which theme Qt actually resolved instead of trusting package metadata. To check it by hand:
 
 ```
-./tools/qt-icon-probe.sh AwOken
+./tools/qt-icon-probe.sh KrystalSVG-Plasma5up-scalable-icontheme-blackysgate.de
 ```
 
 ## Troubleshooting

@@ -5,7 +5,7 @@
 # las demás apps. QT_STYLE_OVERRIDE acá aplica Kvantum únicamente a Dolphin.
 #
 # QT_QPA_PLATFORMTHEME=qt6ct es lo que hace que Qt lea el tema de iconos
-# (AwOken) desde ~/.config/qt6ct/qt6ct.conf. Sin eso, QIcon cae a hicolor
+# (el tema de iconos) desde ~/.config/qt6ct/qt6ct.conf. Sin eso, QIcon cae a hicolor
 # y los iconos salen "de sistema" aunque el tema esté instalado.
 #
 # Siempre exec a /usr/bin/dolphin: si no, con ~/.local/bin primero en PATH

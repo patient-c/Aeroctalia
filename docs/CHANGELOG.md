@@ -2,13 +2,18 @@
 
 ## Sin publicar
 
+- Los colores dejan de estar fijos: el prompt de oh-my-posh, `ls`/`lsd`, `grep` y `bat` toman la paleta que Noctalia genera del wallpaper. `~/.config/noctalia/animfetch.toml` la regenera al cambiar el fondo, y un `precmd` en `~/.config/zsh/aeroctalia-themes.zsh` recarga `LS_COLORS` y `GREP_COLORS` en las terminales ya abiertas. `animfetch` arranca en modo `--pin`, y `clear` o `Ctrl+L` lo desarman.
+- El tema de iconos pasa de AwOken a **KrystalSVG**. Este no es un paquete: se publica como asset de la release de Aeroctalia y `install.sh` lo descarga verificando su sha256, con los stubs ya resueltos y `Inherits=Papirus,hicolor` asegurado. Sus credenciales y su sha256 van en `meta/krystalsvg.conf`; el asset es el tarball de upstream reempaquetado sin modificar, para que el hash sea reproducible.
+- AwOken desaparece de todas las configuraciones. El tema se sincroniza además en `qt5ct` y `qt6ct`, no solo en `kdeglobals`: Qt lee el nombre del tema de ahí, y por eso el lanzador de Noctalia se quedaba atrás mientras Dolphin y GTK sí cambiaban.
+- `rice_fix_icons` busca el tema también en `~/.local/share/icons/`, no solo en `/usr/share/icons/`. Un tema de usuario era invisible para el instalador.
+- `animfetch-bin` entra en los paquetes AUR y `zstd` en los oficiales (para descomprimir el tema).
+- `tools/verify-dolphin.sh` lee el nombre del tema de la configuración en vez de tener AwOken hardcodeado.
 - Se retira Timeshift de la lista de paquetes.
 - Se retiran Gruvbox, DBeaver, Postman, LibreOffice, Remmina, Spotify y la dependencia obligatoria de Flatpak/Flathub.
 - El sonido de inicio del tema SDDM espera a que exista un dispositivo de audio real, y `install.sh` arranca el audio del greeter junto con su sesión. El usuario `sddm` se añade al grupo `audio`, y `--verify` lo comprueba.
 - Se añaden Qt Multimedia y su backend para reproducir ese sonido.
 - `--verify` reconoce correctamente el wallpaper por defecto de Noctalia.
 - El perfil `author` sustituye `$HOME` por el home de destino y configura wallpapers con paleta M3 Content.
-- El instalador aplica AwOken también en GSettings de GTK y verifica el valor.
 - Se evita el conflicto `pipewire-jack`/`jack2` conservando `jack2` si ya está instalado.
 
 ## 1.11.1

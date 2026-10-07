@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Escribe ~/.config/animfetch/palette.json con la paleta que Noctalia
+genera a partir del wallpaper actual, para que animfetch la use solo.
+
+No hay que llamarlo a mano: lo disparan los hooks declarados en
+~/.config/noctalia/animfetch.toml. animfetch, en modo --pin, vigila ese
+fichero y repinta el fetch solo en cuanto cambia.
+"""
+
+import os
+import struct
+import subprocess
+import sys
+import tempfile
+import tomllib
+import zlib
+from pathlib import Path
+
+STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "noctalia"
+SETTINGS = STATE / "settings.toml"
+DEST = Path.home() / ".config/animfetch/palette.json"
+
+
+def read_settings():
+    try:
+        with SETTINGS.open("rb") as f:
+            return tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        sys.exit(f"noctalia-animfetch-palette: no leo {SETTINGS}: {e}")
+
+
+def wallpaper(cfg):
+    # El hook wallpaper_changed lo pasa por $NOCTALIA_WALLPAPER_PATH. Sin el,
+    # se lee del propio wallpaper que Noctalia tiene guardado.
+    path = os.environ.get("NOCTALIA_WALLPAPER_PATH")
+    if path:
+        return path
+    wall = cfg.get("wallpaper", {})
+    for output in ("default", "last"):
+        path = wall.get(output, {}).get("path")
+        if path:
+            return path
+    sys.exit("noctalia-animfetch-palette: no encuentro el wallpaper en settings.toml")
+
+
+def solid_png(rgb, dest):
+    """Noctalia acepta 'color:#RRGGBB' como wallpaper; aqui se fabrica esa imagen."""
+    row = b"\x00" + rgb * 64
+
+    def chunk(tag, data):
+        body = tag + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    dest.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 64, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(row * 64, 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def main():
+    cfg = read_settings()
+    src = wallpaper(cfg)
+    theme = cfg.get("theme", {})
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        if src.startswith("color:"):
+            hexa = src.removeprefix("color:").lstrip("#")
+            if len(hexa) != 6:
+                sys.exit(f"noctalia-animfetch-palette: color invalido: {src!r}")
+            img = tmp / "wallpaper.png"
+            solid_png(bytes.fromhex(hexa), img)
+        elif Path(src).is_file():
+            img = Path(src)
+        else:
+            sys.exit(f"noctalia-animfetch-palette: el wallpaper no existe: {src}")
+
+        out = tmp / "palette.json"
+        cmd = [
+            "noctalia", "theme", str(img),
+            "-o", str(out),
+            "--scheme", theme.get("wallpaper_scheme", "vibrant"),
+        ]
+        if theme.get("mode") in ("dark", "light"):
+            cmd.append(f"--{theme['mode']}")
+        if subprocess.run(cmd, stderr=subprocess.DEVNULL).returncode != 0:
+            sys.exit(f"noctalia-animfetch-palette: 'noctalia theme' fallo con {src}")
+
+        # Se escribe SOBRE el destino, sin renombrar: animfetch vigila el
+        # fichero y un mv() le dejaria el enlace colgado.
+        DEST.parent.mkdir(parents=True, exist_ok=True)
+        DEST.write_bytes(out.read_bytes())
+
+
+if __name__ == "__main__":
+    main()

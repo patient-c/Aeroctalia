@@ -2,7 +2,7 @@
 
 <br clear="all" />
 
-Hyprland desktop setup for Arch Linux: Hyprland, Noctalia, Kvantum and AwOken.
+Hyprland desktop setup for Arch Linux: Hyprland, Noctalia, Kvantum and KrystalSVG.
 
 ## Capturas / Screenshots
 

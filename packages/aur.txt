@@ -1,2 +1,2 @@
-awoken-icons
+animfetch-bin
 oh-my-posh

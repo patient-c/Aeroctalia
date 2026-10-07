@@ -8,7 +8,7 @@ Los temas, iconos y cursores **no son obra propia**: se instalan desde los repos
 | ------------------------------------ | ----------------------------------------------------------------- | --------------------- | ------------------------------- |
 | **Tema del login (win7-sddm-theme)** | — (**incluido** en `assets/sddm/`)                                | MIT/GPL-3 (ver nota)  | `assets/sddm/win7-sddm-theme/`  |
 | GTK theme diinki-aero                | — (incluido en `home/.themes/`)                                   | **GPL-3.0**           | `~/.themes/diinki-aero/LICENSE` |
-| Iconos AwOken                        | `awoken-icons`                                                    | CC-BY-SA              | —                               |
+| Iconos KrystalSVG                    | asset `krystalsvg-bc-extras.tar.zst` de la release (ver nota)     | **CC-BY-NC-SA-4.0**    | `~/.local/share/icons/`         |
 | Cursores Vimix                       | `vimix-cursors`                                                   | GPL-3.0-or-later      | —                               |
 | Cursores Comix                       | `xcursor-comix`                                                   | GPL-2.0               | —                               |
 | Tema Kvantum (KvRoughGlass)          | paquete oficial `kvantum`; copia local en `home/.config/Kvantum/` | GPL-3.0-or-later      | `~/.config/Kvantum/`            |
@@ -38,7 +38,7 @@ Themes, icons and cursors are **not original work**. They are installed from Arc
 | --------------------------------- | ----------------------------------------------------------------- | ---------------------- | ------------------------------- |
 | **Login theme (win7-sddm-theme)** | — (**included** in `assets/sddm/`)                                | MIT/GPL-3 (see note)   | `assets/sddm/win7-sddm-theme/`  |
 | GTK theme diinki-aero             | — (included in `home/.themes/`)                                   | **GPL-3.0**            | `~/.themes/diinki-aero/LICENSE` |
-| AwOken icons                      | `awoken-icons`                                                    | CC-BY-SA               | —                               |
+| KrystalSVG icons                 | asset `krystalsvg-bc-extras.tar.zst` from the release (see note)   | **CC-BY-NC-SA-4.0**     | `~/.local/share/icons/`         |
 | Vimix cursors                     | `vimix-cursors`                                                   | GPL-3.0-or-later       | —                               |
 | Comix cursors                     | `xcursor-comix`                                                   | GPL-2.0                | —                               |
 | Kvantum theme (KvRoughGlass)      | Official `kvantum` package; local copy in `home/.config/Kvantum/` | GPL-3.0-or-later       | `~/.config/Kvantum/`            |
@@ -55,3 +55,17 @@ If you redistribute this repository, keep these notices. Screenshots also show t
 The login theme is **included** under `assets/sddm/` because it is not an Arch package. Its upstream is <https://github.com/birbkeks/win7-sddm-theme>.
 
 The upstream files are inconsistent: `metadata.desktop` declares `License=MIT`, while the included `LICENSE` file contains GPL-3.0. The theme is redistributed **as-is**, with both license files unchanged. If you republish it, assume GPL-3 (the more restrictive license) or ask the author to clarify.
+
+### KrystalSVG: CC BY-NC-SA
+
+El tema de iconos ya no es un paquete de Arch: lo publica Aeroctalia como asset
+de su propia release y `install.sh` lo descarga verificando su sha256.
+
+- Upstream: <https://www.blackysgate.de> (KrystalSVG Plasma5up, "Blackys
+  Compilation with extra png in svg")
+- Licencia: **CC BY-NC-SA** — Creative Commons Atribución-NoComercial-CompartirIgual.
+- El `COPYING` original viaja dentro del tarball, en la raíz del tema.
+
+Ojo con el "NC": esta licencia **no permite uso comercial**. Para el uso
+personal de un rice da igual, pero si alguna vez Aeroctalia se reparte con
+finalidad comercial, este componente es el que manda sobre el resto.
