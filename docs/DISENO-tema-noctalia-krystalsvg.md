@@ -79,13 +79,17 @@ cual, sustituyendo `/home/placeholder` por el `$HOME` real (`meta/origin.txt`).
 2. Descarga `krystalsvg-bc-extras.tar.zst` de la release `v$RICE_VERSION`.
 3. Verifica el sha256. Si no coincide, para: no se instala un tema sin verificar.
 4. Lo extrae en `~/.local/share/icons/KrystalSVG-Plasma5up-scalable-icontheme-blackysgate.de`.
+   El asset es el tarball de upstream reempaquetado **sin modificar**, con
+   `--sort=name`, mtime y owner fijos para que el sha256 sea reproducible. Nada
+   del estado de la maquina de desarrollo se cuela en el asset: ni el parche
+   manual de `index.theme`, ni `icon-theme.cache`, ni `index.theme.bak`.
 5. Aplica los dos parches, **idempotentes**:
    - `index.theme`: `Inherits=Papirus,hicolor`. El upstream trae
      `synbolic-bullschit,hicolor`, que no existe en Arch y dejaba ~40 iconos de
      apps modernas vacíos.
-   - Stubs: los directorios de tamaños raster (8x8…512x512) apuntan a
-     `scalable`, y los `scalable/categories/*` que faltan se enlazan a su
-     equivalente en `scalable/preferences/`.
+   - Stubs: los directorios de tamaños raster (8x8…512x512) y los nombres de
+     icono que faltan ya vienen como symlinks en el propio upstream (1185 de
+     ellos), asi que no hay que rehacerlos. Solo queda `Inherits=`.
 6. `gtk-update-icon-cache`.
 7. Verifica con `tools/qt-icon-probe.sh` (ya existe y mide de verdad qué tema
    resolvió Qt).

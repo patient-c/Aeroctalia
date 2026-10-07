@@ -3,7 +3,7 @@
 ## Sin publicar
 
 - Los colores dejan de estar fijos: el prompt de oh-my-posh, `ls`/`lsd`, `grep` y `bat` toman la paleta que Noctalia genera del wallpaper. `~/.config/noctalia/animfetch.toml` la regenera al cambiar el fondo, y un `precmd` en `~/.config/zsh/aeroctalia-themes.zsh` recarga `LS_COLORS` y `GREP_COLORS` en las terminales ya abiertas. `animfetch` arranca en modo `--pin`, y `clear` o `Ctrl+L` lo desarman.
-- El tema de iconos pasa de AwOken a **KrystalSVG**. Este no es un paquete: se publica como asset de la release de Aeroctalia y `install.sh` lo descarga verificando su sha256, con los stubs ya resueltos y `Inherits=Papirus,hicolor` asegurado. Sus credenciales van en `meta/krystalsvg.conf`.
+- El tema de iconos pasa de AwOken a **KrystalSVG**. Este no es un paquete: se publica como asset de la release de Aeroctalia y `install.sh` lo descarga verificando su sha256, con los stubs ya resueltos y `Inherits=Papirus,hicolor` asegurado. Sus credenciales y su sha256 van en `meta/krystalsvg.conf`; el asset es el tarball de upstream reempaquetado sin modificar, para que el hash sea reproducible.
 - AwOken desaparece de todas las configuraciones. El tema se sincroniza además en `qt5ct` y `qt6ct`, no solo en `kdeglobals`: Qt lee el nombre del tema de ahí, y por eso el lanzador de Noctalia se quedaba atrás mientras Dolphin y GTK sí cambiaban.
 - `rice_fix_icons` busca el tema también en `~/.local/share/icons/`, no solo en `/usr/share/icons/`. Un tema de usuario era invisible para el instalador.
 - `animfetch-bin` entra en los paquetes AUR y `zstd` en los oficiales (para descomprimir el tema).
