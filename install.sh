@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — Aeroctalia (Hyprland + Noctalia + Kvantum + AwOken) en Arch
+# install.sh — Aeroctalia (Hyprland + Noctalia + Kvantum + KrystalSVG) en Arch
 #
 #   git clone https://github.com/patient-c/Aeroctalia
 #   ./install.sh --dry-run
@@ -10,6 +10,11 @@
 set -euo pipefail
 
 RICE_VERSION="1.0.1"
+
+# Tema de iconos. Se leen de meta/krystalsvg.conf en krystalsvg_meta; se
+# declaran aqui porque do_uninstall() corre mucho antes que ese paso.
+KS_BASE_URL="https://github.com/patient-c/Aeroctalia/releases/download"
+KS_ASSET=""; KS_SHA=""; KS_DIR=""
 LANG="es"
 
 normalize_lang() {
@@ -57,7 +62,7 @@ prompt_language() {
 usage() {
   if [[ "$LANG" == "en" ]]; then
     cat <<'EOF'
-install.sh — Aeroctalia (Hyprland + Noctalia + Kvantum + AwOken)
+install.sh — Aeroctalia (Hyprland + Noctalia + Kvantum + KrystalSVG)
 
 Quick help:
   ./install.sh                     install with confirmation and backups
@@ -550,6 +555,115 @@ fi
 [[ $DRY -eq 1 ]] && say "$(T "DRY RUN: no changes will be made" "DRY-RUN: no se modificará nada")"
 
 # ── uninstall / verify early exits ───────────────────────────────────────
+# ══════════════════════════════════════════════════════ KrystalSVG ═══════
+# El tema de iconos va como asset de nuestra propia release, no como paquete:
+# son 477 MB descomprimido y no esta en ningun repositorio ni en la AUR. Se
+# verifica por sha256 y solo se descarga una vez.
+#
+# El tarball ya lleva resueltos los stubs (el upstream usa nombres que no
+# existen y dejaba ~40 iconos de apps modernas vacios). Aqui solo se asegura
+# Inherits= y la cache de GTK.
+
+
+krystalsvg_meta() {
+  local f="$REPO/meta/krystalsvg.conf"
+  [[ -f $f ]] || return 1
+  KS_ASSET="$(sed -n 's/^ASSET=//p' "$f" | head -1 | tr -d '\r')"
+  KS_SHA="$(sed -n 's/^SHA256=//p' "$f" | head -1 | tr -d '[:space:]')"
+  KS_DIR="$(sed -n 's/^DIR=//p' "$f" | head -1 | tr -d '\r')"
+  [[ -n $KS_ASSET && -n $KS_SHA && -n $KS_DIR ]]
+}
+
+krystalsvg_patch() {
+  # OJO: en una sola linea NO, "local d=... idx=$d/index.theme" expande $d antes
+  # de asignarlo y idx se queda sin el nombre del tema. Bash expande todos los
+  # argumentos de local antes de ejecutar ninguno.
+  local d="$NEW_HOME/.local/share/icons/$KS_DIR"
+  local idx="$d/index.theme"
+  local indent
+  # OJO: en este index.theme las claves van CON sangria ("  Inherits=..."), asi
+  # que un '^Inherits=' no casa y el parche no haria nada.
+  # Solo se guarda la sangria, nunca la clave, o saldria
+  # "Inherits=Inherits=Papirus,hicolor".
+  indent="$(sed -n 's/^\([[:space:]]*\)[Ii]nherits=.*/\1/p' "$idx" 2>/dev/null | head -1)"
+  if grep -qEi '^[[:space:]]*inherits=.*bullschit' "$idx" 2>/dev/null; then
+    cp -a "$idx" "$idx.aeroctalia.bak" 2>/dev/null || true
+    if sed -i -E "s|^[[:space:]]*[Ii]nherits=.*|${indent}Inherits=Papirus,hicolor|" "$idx" 2>/dev/null; then
+      ok "$(T "KrystalSVG: Inherits=Papirus,hicolor" "KrystalSVG: Inherits=Papirus,hicolor")"
+      info "    $(T "the upstream value pointed at a theme that does not exist on Arch" "el valor del upstream apuntaba a un tema que no existe en Arch")"
+    else
+      warn "$(T "Could not patch Inherits in KrystalSVG" "No se pudo parchear Inherits en KrystalSVG")"
+    fi
+  else
+    ok "$(T "KrystalSVG: Inherits already correct" "KrystalSVG: Inherits ya correcto")"
+  fi
+  [[ $USER_ONLY -eq 1 ]] || as_root gtk-update-icon-cache -f -t "$d" >/dev/null 2>&1 || true
+}
+
+krystalsvg_fetch() {
+  local url="$KS_BASE_URL/v$RICE_VERSION/$KS_ASSET" tmp got
+  tmp="$(mktemp -d 2>/dev/null)" || { warn "$(T "Could not create a temp dir" "No se pudo crear un directorio temporal")"; return 1; }
+  info "$(T "Downloading" "Descargando") $url"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL --retry 2 --connect-timeout 20 -o "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
+      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q --tries=2 -O "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
+      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
+  else
+    rm -rf "$tmp"
+    warn "$(T "Neither curl nor wget is available" "No hay curl ni wget")"
+    return 1
+  fi
+
+  got="$(sha256sum "$tmp/$KS_ASSET" 2>/dev/null | cut -d' ' -f1)"
+  if [[ "$got" != "$KS_SHA" ]]; then
+    rm -rf "$tmp"
+    warn "$(T "sha256 mismatch; not installing the icon theme" "sha256 no coincide; no se instala el tema de iconos")"
+    info "    $(T "expected" "esperado"): $KS_SHA"
+    info "    $(T "got" "obtenido"):     ${got:-?}"
+    return 1
+  fi
+  ok "$(T "sha256 verified" "sha256 verificado")"
+
+  mkdir -p "$NEW_HOME/.local/share/icons" 2>/dev/null || { rm -rf "$tmp"; return 1; }
+  if ! tar --zstd -xf "$tmp/$KS_ASSET" -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
+    # zstd puede faltar si se instaló con --no-packages
+    if ! zstd -d -q -c "$tmp/$KS_ASSET" 2>/dev/null | tar -xf - -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
+      rm -rf "$tmp"; warn "$(T "Could not extract the icon theme (missing zstd?)" "No se pudo extraer el tema (¿falta zstd?)")"; return 1;
+    fi
+  fi
+  rm -rf "$tmp"
+  [[ -d "$NEW_HOME/.local/share/icons/$KS_DIR" ]] || {
+    warn "$(T "Archive did not contain" "El archivo no traía") $KS_DIR/"; return 1; }
+  return 0
+}
+
+install_krystalsvg() {
+  local d="$NEW_HOME/.local/share/icons"
+  if ! krystalsvg_meta; then
+    warn "$(T "meta/krystalsvg.conf is missing; skipping the icon theme" "Falta meta/krystalsvg.conf; se omite el tema de iconos")"
+    return 0
+  fi
+  if [[ -f "$d/$KS_DIR/index.theme" ]]; then
+    if [[ $DRY -eq 0 ]]; then
+      ok "$(T "KrystalSVG already installed" "KrystalSVG ya instalado")"
+      krystalsvg_patch
+    else
+      info "$(T "[dry-run] KrystalSVG is already installed" "[dry-run] KrystalSVG ya está instalado")"
+    fi
+    return 0
+  fi
+  if [[ $DRY -eq 1 ]]; then
+    info "$(T "[dry-run] would download" "[dry-run] se descargaría") $KS_BASE_URL/v$RICE_VERSION/$KS_ASSET"
+    info "$(T "[dry-run] then extract, verify the sha256 and patch Inherits" "[dry-run] luego extraer, verificar el sha256 y parchear Inherits")"
+    return 0
+  fi
+  krystalsvg_fetch && krystalsvg_patch && \
+    ok "$(T "KrystalSVG installed" "KrystalSVG instalado")"
+}
+
+
 do_uninstall() {
   step "$(T "Remove Aeroctalia files" "Quitar archivos de Aeroctalia")"
   info "$(T "Packages are NOT removed (pacman/yay). Only files under" "NO se desinstalan paquetes (pacman/yay). Solo archivos en") $NEW_HOME."
@@ -560,14 +674,15 @@ do_uninstall() {
     info "  ~/.local/share/applications/org.kde.dolphin.desktop"
     info "  ~/.config/systemd/user/plasma-dolphin.service.d/"
     info "  ~/.config/environment.d/50-rice.conf"
-    info "  ~/.local/share/icons/AwOken/index.theme  ($(T "only if marked # rice:" "solo si tiene la marca # rice:"))"
+    info "  ~/.local/share/icons/$KS_DIR/index.theme  ($(T "only if marked # rice:" "solo si tiene la marca # rice:"))"
     return 0
   fi
   rm -f "$NEW_HOME/.local/bin/dolphin"
   rm -f "$NEW_HOME/.local/share/applications/org.kde.dolphin.desktop"
   rm -rf "$NEW_HOME/.config/systemd/user/plasma-dolphin.service.d"
   rm -f "$NEW_HOME/.config/environment.d/50-rice.conf"
-  local idx="$NEW_HOME/.local/share/icons/AwOken/index.theme"
+  krystalsvg_meta 2>/dev/null || true
+  local idx="$NEW_HOME/.local/share/icons/$KS_DIR/index.theme"
   if [[ -f "$idx" ]] && head -1 "$idx" 2>/dev/null | grep -q '^# rice:'; then
     rm -f "$idx"
     ok "$(T "Removed the patched index.theme" "Se quitó el index.theme parcheado")"
@@ -1115,115 +1230,6 @@ if [[ $DRY -eq 0 && $VERIFY_ONLY -eq 0 ]]; then
   [[ ! -e "$NEW_HOME/.gtkrc-2.0.mine" ]] && { : > "$NEW_HOME/.gtkrc-2.0.mine"; ok "$(T "Created .gtkrc-2.0.mine" "Se creó .gtkrc-2.0.mine")"; }
 fi
 
-# ══════════════════════════════════════════════════════ KrystalSVG ═══════
-# El tema de iconos va como asset de nuestra propia release, no como paquete:
-# son 477 MB descomprimido y no esta en ningun repositorio ni en la AUR. Se
-# verifica por sha256 y solo se descarga una vez.
-#
-# El tarball ya lleva resueltos los stubs (el upstream usa nombres que no
-# existen y dejaba ~40 iconos de apps modernas vacios). Aqui solo se asegura
-# Inherits= y la cache de GTK.
-
-KS_BASE_URL="https://github.com/patient-c/Aeroctalia/releases/download"
-
-krystalsvg_meta() {
-  local f="$REPO/meta/krystalsvg.conf"
-  [[ -f $f ]] || return 1
-  KS_ASSET="$(sed -n 's/^ASSET=//p' "$f" | head -1 | tr -d '\r')"
-  KS_SHA="$(sed -n 's/^SHA256=//p' "$f" | head -1 | tr -d '[:space:]')"
-  KS_DIR="$(sed -n 's/^DIR=//p' "$f" | head -1 | tr -d '\r')"
-  [[ -n $KS_ASSET && -n $KS_SHA && -n $KS_DIR ]]
-}
-
-krystalsvg_patch() {
-  # OJO: en una sola linea NO, "local d=... idx=$d/index.theme" expande $d antes
-  # de asignarlo y idx se queda sin el nombre del tema. Bash expande todos los
-  # argumentos de local antes de ejecutar ninguno.
-  local d="$NEW_HOME/.local/share/icons/$KS_DIR"
-  local idx="$d/index.theme"
-  local indent
-  # OJO: en este index.theme las claves van CON sangria ("  Inherits=..."), asi
-  # que un '^Inherits=' no casa y el parche no haria nada.
-  # Solo se guarda la sangria, nunca la clave, o saldria
-  # "Inherits=Inherits=Papirus,hicolor".
-  indent="$(sed -n 's/^\([[:space:]]*\)[Ii]nherits=.*/\1/p' "$idx" 2>/dev/null | head -1)"
-  if grep -qEi '^[[:space:]]*inherits=.*bullschit' "$idx" 2>/dev/null; then
-    cp -a "$idx" "$idx.aeroctalia.bak" 2>/dev/null || true
-    if sed -i -E "s|^[[:space:]]*[Ii]nherits=.*|${indent}Inherits=Papirus,hicolor|" "$idx" 2>/dev/null; then
-      ok "$(T "KrystalSVG: Inherits=Papirus,hicolor" "KrystalSVG: Inherits=Papirus,hicolor")"
-      info "    $(T "the upstream value pointed at a theme that does not exist on Arch" "el valor del upstream apuntaba a un tema que no existe en Arch")"
-    else
-      warn "$(T "Could not patch Inherits in KrystalSVG" "No se pudo parchear Inherits en KrystalSVG")"
-    fi
-  else
-    ok "$(T "KrystalSVG: Inherits already correct" "KrystalSVG: Inherits ya correcto")"
-  fi
-  [[ $USER_ONLY -eq 1 ]] || as_root gtk-update-icon-cache -f -t "$d" >/dev/null 2>&1 || true
-}
-
-krystalsvg_fetch() {
-  local url="$KS_BASE_URL/v$RICE_VERSION/$KS_ASSET" tmp got
-  tmp="$(mktemp -d 2>/dev/null)" || { warn "$(T "Could not create a temp dir" "No se pudo crear un directorio temporal")"; return 1; }
-  info "$(T "Downloading" "Descargando") $url"
-  if command -v curl >/dev/null 2>&1; then
-    curl -fL --retry 2 --connect-timeout 20 -o "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
-      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
-  elif command -v wget >/dev/null 2>&1; then
-    wget -q --tries=2 -O "$tmp/$KS_ASSET" "$url" >/dev/null 2>&1 || {
-      rm -rf "$tmp"; warn "$(T "Download failed" "Falló la descarga")"; return 1; }
-  else
-    rm -rf "$tmp"
-    warn "$(T "Neither curl nor wget is available" "No hay curl ni wget")"
-    return 1
-  fi
-
-  got="$(sha256sum "$tmp/$KS_ASSET" 2>/dev/null | cut -d' ' -f1)"
-  if [[ "$got" != "$KS_SHA" ]]; then
-    rm -rf "$tmp"
-    warn "$(T "sha256 mismatch; not installing the icon theme" "sha256 no coincide; no se instala el tema de iconos")"
-    info "    $(T "expected" "esperado"): $KS_SHA"
-    info "    $(T "got" "obtenido"):     ${got:-?}"
-    return 1
-  fi
-  ok "$(T "sha256 verified" "sha256 verificado")"
-
-  mkdir -p "$NEW_HOME/.local/share/icons" 2>/dev/null || { rm -rf "$tmp"; return 1; }
-  if ! tar --zstd -xf "$tmp/$KS_ASSET" -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
-    # zstd puede faltar si se instaló con --no-packages
-    if ! zstd -d -q -c "$tmp/$KS_ASSET" 2>/dev/null | tar -xf - -C "$NEW_HOME/.local/share/icons" 2>/dev/null; then
-      rm -rf "$tmp"; warn "$(T "Could not extract the icon theme (missing zstd?)" "No se pudo extraer el tema (¿falta zstd?)")"; return 1;
-    fi
-  fi
-  rm -rf "$tmp"
-  [[ -d "$NEW_HOME/.local/share/icons/$KS_DIR" ]] || {
-    warn "$(T "Archive did not contain" "El archivo no traía") $KS_DIR/"; return 1; }
-  return 0
-}
-
-install_krystalsvg() {
-  local d="$NEW_HOME/.local/share/icons"
-  if ! krystalsvg_meta; then
-    warn "$(T "meta/krystalsvg.conf is missing; skipping the icon theme" "Falta meta/krystalsvg.conf; se omite el tema de iconos")"
-    return 0
-  fi
-  if [[ -f "$d/$KS_DIR/index.theme" ]]; then
-    if [[ $DRY -eq 0 ]]; then
-      ok "$(T "KrystalSVG already installed" "KrystalSVG ya instalado")"
-      krystalsvg_patch
-    else
-      info "$(T "[dry-run] KrystalSVG is already installed" "[dry-run] KrystalSVG ya está instalado")"
-    fi
-    return 0
-  fi
-  if [[ $DRY -eq 1 ]]; then
-    info "$(T "[dry-run] would download" "[dry-run] se descargaría") $KS_BASE_URL/v$RICE_VERSION/$KS_ASSET"
-    info "$(T "[dry-run] then extract, verify the sha256 and patch Inherits" "[dry-run] luego extraer, verificar el sha256 y parchear Inherits")"
-    return 0
-  fi
-  krystalsvg_fetch && krystalsvg_patch && \
-    ok "$(T "KrystalSVG installed" "KrystalSVG instalado")"
-}
-
 # ══════════════════════════════════════════════════════ 7. assets ════════
 step "$(T "Resources" "Recursos")"
 if [[ $VERIFY_ONLY -eq 1 ]]; then
@@ -1658,11 +1664,11 @@ rice_fix_icons() {
   ic_theme="$(grep -A2 '^\[Icons\]' "$NEW_HOME/.config/kdeglobals" 2>/dev/null \
               | grep Theme= | cut -d= -f2 || true)"
   [[ -z "$ic_theme" ]] && ic_theme="$(grep -E '^icon_theme=' "$NEW_HOME/.config/qt6ct/qt6ct.conf" 2>/dev/null | cut -d= -f2 || true)"
-  [[ -z "$ic_theme" ]] && ic_theme="AwOken"
+  # Sin ninguno de los dos: el tema que instala este rice.
+  [[ -z "$ic_theme" ]] && ic_theme="$KS_DIR"
 
   ic_pkg() {
     case "$1" in
-      AwOken|AwOkenDark|AwOkenWhite) echo "awoken-icons" ;;
       Adwaita)                       echo "adwaita-icon-theme" ;;
       breeze*)                       echo "breeze-icons" ;;
       Papirus*)                      echo "papirus-icon-theme" ;;
@@ -1670,7 +1676,16 @@ rice_fix_icons() {
     esac
   }
 
-  if [[ ! -d "/usr/share/icons/$ic_theme" ]]; then
+  # Donde puede estar el tema. KrystalSVG va a ~/.local/share/icons porque no es
+  # paquete: mirar solo /usr/share/icons lo hacia invisible para el instalador.
+  ic_find() {
+    local n="$1"
+    [[ -d "/usr/share/icons/$n" ]] && { echo "/usr/share/icons/$n"; return 0; }
+    [[ -d "$NEW_HOME/.local/share/icons/$n" ]] && { echo "$NEW_HOME/.local/share/icons/$n"; return 0; }
+    echo ""
+  }
+
+  if [[ -z "$(ic_find "$ic_theme")" ]]; then
     ic_needed="$(ic_pkg "$ic_theme")"
     if [[ -n "$ic_needed" && $NO_PKGS -eq 0 && $NO_AUR -eq 0 && $DRY -eq 0 && $VERIFY_ONLY -eq 0 ]]; then
       warn "$(T "Theme '$ic_theme' is missing; installing $ic_needed" "Falta el tema '$ic_theme'; se instalará $ic_needed")"
@@ -1685,9 +1700,10 @@ rice_fix_icons() {
     fi
   fi
 
-  if [[ -n "$ic_theme" && -d "/usr/share/icons/$ic_theme" ]]; then
+  ic_sys="$(ic_find "$ic_theme")"
+  if [[ -n "$ic_theme" && -n "$ic_sys" ]]; then
     set_gtk_icon_theme "$ic_theme"
-    ic_sys="/usr/share/icons/$ic_theme"
+    ic_sys="$ic_sys"
     ic_broken="$(grep -c '^Type=scalable' "$ic_sys/index.theme" 2>/dev/null || true)"
     ic_broken="${ic_broken:-0}"
     ic_shot="$(find "$ic_sys" -maxdepth 4 \( -name '*.png' -o -name '*.svg' \) -print -quit 2>/dev/null || true)"
@@ -1718,21 +1734,36 @@ rice_fix_icons() {
       warn "$(T "qt6ct does not set icon_theme=$ic_theme; Qt apps may ignore it" "qt6ct no tiene icon_theme=$ic_theme; las aplicaciones Qt podrían ignorarlo")"
       info "    $(T "Qt reads the theme name from ~/.config/qt6ct/qt6ct.conf, not kdeglobals" "Qt obtiene el nombre del tema de ~/.config/qt6ct/qt6ct.conf, no de kdeglobals")"
     fi
+    # Qt NO lee kdeglobals: lee ~/.config/qt6ct/qt6ct.conf. Si no se escribe ahi,
+    # Dolphin y GTK quedan con el tema nuevo pero el lanzador de Noctalia (que es
+    # Qt) se queda con el viejo. Por eso se sincronizan qt5ct y qt6ct ademas de
+    # kdeglobals.
     if [[ $DRY -eq 0 && $VERIFY_ONLY -eq 0 ]]; then
       kwriteconfig6 --file "$NEW_HOME/.config/kdeglobals" --group Icons \
         --key Theme "$ic_theme" >/dev/null 2>&1 || true
+      for qtc in qt5ct/qt5ct.conf qt6ct/qt6ct.conf; do
+        local f="$NEW_HOME/.config/$qtc"
+        [[ -f $f ]] || continue
+        if grep -qxF "icon_theme=$ic_theme" "$f" 2>/dev/null; then
+          ok "$(T "$qtc uses $ic_theme" "$qtc usa $ic_theme")"
+        elif sed -i "s|^icon_theme=.*|icon_theme=$ic_theme|" "$f" 2>/dev/null; then
+          ok "$(T "$qtc set to $ic_theme" "$qtc puesto en $ic_theme")"
+        else
+          warn "$(T "Could not set icon_theme in $qtc" "No se pudo poner icon_theme en $qtc")"
+        fi
+      done
       kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
     fi
   elif [[ -n "$ic_theme" ]]; then
     warn "$(T "Icon theme '$ic_theme' is NOT installed" "El tema de iconos '$ic_theme' NO está instalado")"
-    info "    $(T "awoken-icons is on the AUR:" "awoken-icons está en AUR:")  yay -S awoken-icons"
+    info "    $(T "It ships as an asset of the Aeroctalia release; re-run without --no-packages" "Va como asset de la release de Aeroctalia; vuelve a ejecutar sin --no-packages")"
   fi
 }
 
 if [[ $VERIFY_ONLY -eq 1 ]]; then
   info "$(T "--verify does not write files; inspection runs in step 12" "--verify no escribe archivos; la inspección se realiza en el paso 12")"
 elif [[ $DRY -eq 1 ]]; then
-  info "$(T "[dry-run] would rewrite the wrapper, .desktop, drop-in and environment.d, and patch AwOken" "[dry-run] se reescribirían wrapper, .desktop, drop-in y environment.d, y se parchearía AwOken")"
+  info "$(T "[dry-run] would rewrite the wrapper, .desktop, drop-in and environment.d, and patch the icon theme" "[dry-run] se reescribirían wrapper, .desktop, drop-in y environment.d, y se parchearía el tema de iconos")"
 else
   rice_write_dolphin
   rice_fix_icons
@@ -1898,7 +1929,7 @@ do_verify() {
     done
     if [[ -z "$v_where" ]]; then
       warn "$(T "Icon theme '$want_icon' is NOT installed" "El tema de iconos '$want_icon' NO está instalado")"
-      info "    yay -S awoken-icons"
+      info "    $(T "it ships as an asset of the Aeroctalia release" "va como asset de la release de Aeroctalia")"
       problems=$((problems+1))
     else
       v_idx=""
@@ -2079,7 +2110,7 @@ do_verify() {
   if [[ $DRY -eq 0 && -x "$REPO/tools/qt-icon-probe.sh" ]] \
      && command -v g++ >/dev/null && pkg-config --exists Qt6Gui 2>/dev/null; then
     info "$(T "Qt6 probe (the theme actually resolved, not package metadata):" "Sonda Qt6 (el tema que realmente resolvió, no lo que indica el paquete):")"
-    if "$REPO/tools/qt-icon-probe.sh" "${want_icon:-AwOken}"; then
+    if "$REPO/tools/qt-icon-probe.sh" "${want_icon:-$KS_DIR}"; then
       ok "$(T "Probe: icons are loaded from the theme" "Sonda: los iconos se cargan desde el tema")"
     else
       warn "$(T "Probe: Qt is not rendering $want_icon (falling back to hicolor)" "Sonda: Qt no está mostrando $want_icon (usa hicolor)")"
