@@ -18,6 +18,11 @@ qt6-tools
 plasma-integration        
 polkit-kde-agent
 
+# KrystalSVG declara Inherits=Papirus,hicolor. Papirus es lo que aporta los
+# iconos de apps modernas que el synbolic-bullschit del upstream no trae: sin
+# el, ese Inherits no resuelve a nada y quedan huecos.
+papirus-icon-theme
+
 # Terminal
 kitty
 

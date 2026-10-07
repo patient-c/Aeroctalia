@@ -1727,6 +1727,28 @@ rice_fix_icons() {
   ic_sys="$(ic_find "$ic_theme")"
   if [[ -n "$ic_theme" && -n "$ic_sys" ]]; then
     set_gtk_icon_theme "$ic_theme"
+
+    # "El tema esta instalado" no dice nada de lo que hereda. Un Inherits que
+    # no resuelve deja huecos y Qt no avisa: por eso se comprueba nombre a
+    # nombre. Es el mismo fallo que traia synbolic-bullschit en el upstream de
+    # KrystalSVG.
+    ic_inh="$(sed -n -E 's/^[[:space:]]*[Ii]nherits=(.*)$/\1/p' "$ic_sys/index.theme" 2>/dev/null | head -1)"
+    [[ -n $ic_inh ]] && {
+      local miss=""
+      local i
+      local -a ih
+      IFS=',' read -r -a ih <<< "$ic_inh"
+      for i in "${ih[@]}"; do
+        [[ -z $i ]] && continue
+        [[ -n "$(ic_find "$i")" ]] || miss="$miss $i"
+      done
+      if [[ -n $miss ]]; then
+        warn "$(T "Inherits of $ic_theme points at themes that are NOT installed:" "El Inherits de $ic_theme apunta a temas que NO estan instalados:") $miss"
+        info "    $(T "icons that only exist in those themes will show as blank" "los iconos que solo existen en esos temas saldrán en blanco")"
+      else
+        ok "$(T "$ic_theme inherits from installed themes" "$ic_theme hereda de temas instalados")"
+      fi
+    }
     ic_sys="$ic_sys"
     ic_broken="$(grep -c '^Type=scalable' "$ic_sys/index.theme" 2>/dev/null || true)"
     ic_broken="${ic_broken:-0}"
